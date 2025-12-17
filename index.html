@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>像素工卡生成器</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Friends Z';
+            src: url('./FriendsZ-Regular.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --bg-color: #222;
+            --card-bg: #fff;
+            --ink-color: #000;
+            --accent-gray: #ccc;
+        }
+
+        body {
+            font-family: 'VT323', monospace; /* 使用像素字体 */
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 { text-align: center; margin-bottom: 10px; letter-spacing: 2px; }
+
+        /* --- 工卡主体样式 (预览区) --- */
+        #card-capture-area {
+            width: 324px;
+            height: 540px;
+            background-color: var(--card-bg);
+            border: 4px solid var(--ink-color);
+            border-radius: 0px;
+            position: relative;
+            color: var(--ink-color);
+            overflow: hidden;
+            /* 模拟电路板背景纹理 */
+            background-image: 
+                linear-gradient(var(--ink-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--ink-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #f0f0f0;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* 覆盖一层白色遮罩让背景只在特定区域显示，或者我们直接用块级元素堆叠 */
+        .card-layer {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+            /* 复杂的CSS电路背景模拟比较难，这里用简单的SVG图或者CSS遮罩模拟 */
+            background: 
+                radial-gradient(circle at 10% 20%, transparent 0%, transparent 0%),
+                #fff;
+            /* 这里为了简化，我们把背景设为白色，只在边缘留一点缝隙 */
+            margin: 4px;
+            border: 2px solid var(--ink-color);
+        }
+        
+        /* 真正的布局容器 */
+        .card-content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-sizing: border-box;
+            background: 
+                radial-gradient(circle, transparent 20%, #fff 20%) 0 0/10px 10px; 
+            /* 简单的点阵背景 */
+        }
+
+        /* 头部: 部门信息 */
+        .header-box {
+            background: var(--ink-color);
+            color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            border: 2px solid var(--ink-color);
+            margin-bottom: 10px;
+        }
+        .header-logo {
+            width: 40px;
+            height: 40px;
+            filter: invert(1); /* 反色，因为背景是黑的 */
+            margin-right: 10px;
+            image-rendering: pixelated;
+        }
+        .header-text h3 { margin: 0; font-size: 22px; text-transform: uppercase; line-height: 1; }
+        .header-text span { font-size: 14px; opacity: 0.8; }
+
+        /* 中部: 头像和信息 */
+        .main-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+        
+        .photo-frame {
+            width: 120px;
+            height: 160px;
+            border: 4px solid var(--ink-color);
+            border-radius: 8px;
+            padding: 4px;
+            background: #fff;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+        }
+        .photo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border: 0px solid var(--ink-color);
+            border-radius: 4px;
+            /*filter: grayscale(100%) contrast(120%);  强制黑白高对比 */
+            image-rendering: pixelated;
+        }
+
+        .info-block {
+            flex: 1;
+            background: var(--ink-color);
+            color: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            height: 150px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .info-label { font-size: 18px; margin-bottom: 2px; }
+        .info-value { font-size: 28px; font-weight: bold; line-height: 1; margin-bottom: 10px; text-transform: uppercase;}
+        
+        /* 签名区域容器 */
+        .signature-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+        }
+        /* 签名区域 */
+        .signature-area {
+            height: 50px;
+            flex: 1;
+            border: 2px dashed var(--ink-color);
+            border-radius: 4px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+        .signature-text {
+            font-family: 'Friends Z', cursive;
+            font-size: 40px;
+            color: var(--ink-color);
+            text-align: center;
+            transform: translateY(-2px);
+        }
+        .qr-code {
+            width: 50px;
+            height: 50px;
+            border: 1px solid var(--ink-color);
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin-right: 3px;
+            flex-shrink: 0;
+        }
+        .qr-code img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .qr-code-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: var(--ink-color);
+            text-align: center;
+            background: repeating-linear-gradient(
+                45deg,
+                #000,
+                #000 2px,
+                #fff 2px,
+                #fff 4px
+            );
+            color: #fff;
+        }
+
+        /* 底部: 权限和条码 */
+        .footer-box {
+            background: #fff;
+            border: 3px solid var(--ink-color);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            margin-top: auto;
+            position: relative;
+        }
+        .security-level {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 2px dashed var(--ink-color);
+            padding-bottom: 5px;
+            display: block;
+        }
+        .access-badge {
+            background: var(--ink-color);
+            color: #fff;
+            display: inline-block;
+            padding: 5px 20px;
+            border-radius: 20px;
+            font-size: 24px;
+            margin: 5px 0;
+            width: 80%;
+        }
+        .access-badge svg {
+            fill: #fff;
+            vertical-align: middle;
+            margin-bottom: 4px;
+        }
+        
+        /* 动态条形码样式 */
+        .barcode {
+            height: 50px;
+            width: 90%;
+            margin: 0 auto;
+            background: var(--barcode-gradient, repeating-linear-gradient(
+                to right,
+                #000 0px, #000 2px,
+                transparent 2px, transparent 4px,
+                #000 4px, #000 7px,
+                transparent 7px, transparent 9px
+            ));
+            background-size: 100% 100%;
+        }
+        .id-number {
+            margin-top: 5px;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        /* --- 控制面板样式 --- */
+        .controls {
+            width: 100%;
+            max-width: 320px;
+            margin-top: 20px;
+            background: #333;
+            padding: 15px;
+            border-radius: 10px;
+            box-sizing: border-box;
+        }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: #aaa; font-size: 14px;}
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background: #222;
+            border: 1px solid #555;
+            color: #fff;
+            font-family: inherit;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #222;
+            border: 1px solid #555;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 2px solid #000;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border: 2px solid #000;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .control-group span[id$="-value"] {
+            color: #fff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            background: #222;
+            border: 2px solid #555;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        
+        input[type="checkbox"]:checked {
+            background: #fff;
+            border-color: #000;
+        }
+        
+        .upload-btn {
+            display: inline-block;
+            background: #555;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        input[type="file"] { display: none; }
+
+        /* 预设选择器 */
+        .preset-list { display: flex; gap: 5px; margin-top: 5px; }
+        .preset-item {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #555;
+            cursor: pointer;
+            object-fit: cover;
+        }
+        .preset-item:hover, .preset-item.active { border-color: #fff; }
+
+        /* 生成按钮 */
+        .action-btn {
+            width: 100%;
+            padding: 15px;
+            background: #fff;
+            color: #000;
+            border: none;
+            font-family: inherit;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            border: 4px solid #000;
+            box-shadow: 4px 4px 0 #888;
+        }
+        .action-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #888;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h2>像素工卡生成器</h2>
+
+    <div id="card-capture-area">
+        <div class="card-content">
+            <div class="header-box">
+                <img src="https://img.icons8.com/ios-filled/100/000000/united-nations.png" class="header-logo" id="preview-logo">
+                <div class="header-text">
+                    <h3 id="preview-dept">THE NAVIGATOR PROJECT</h3>
+                    <span id="preview-sub-dept">COMPANY</span>
+                </div>
+            </div>
+
+            <div class="main-section">
+                <div class="photo-frame">
+                    <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=fzfxg7" class="photo-img" id="preview-avatar">
+                </div>
+                <div class="info-block">
+                    <div class="info-label">POSITION</div>
+                    <div class="info-value" id="preview-position">DATA CLEANER</div>
+                    <div class="info-label">NAME</div>
+                    <div class="info-value" id="preview-name">Steven</div>
+                </div>
+            </div>
+
+            <div class="signature-container">
+                <div class="signature-area">
+                    <div class="signature-text" id="preview-signature">Steven Evens</div>
+                </div>
+                <div class="qr-code" id="preview-qr">
+                    <div class="qr-code-placeholder">QR</div>
+                </div>
+            </div>
+
+            <div class="footer-box">
+                <span class="security-level" id="preview-level">SECURITY CLEARANCE: LEVEL 5</span>
+                <div class="access-badge">ACCESS GRANTED <svg t="1765849356055" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="4660" width="20" height="20"><path d="M384 384h256v256H384z" p-id="4661"></path><path d="M853.333333 256c0-47.061333-38.272-85.333333-85.333333-85.333333h-85.333333V85.333333h-85.333334v85.333334h-170.666666V85.333333H341.333333v85.333334H256c-47.061333 0-85.333333 38.272-85.333333 85.333333v85.333333H85.333333v85.333334h85.333334v170.666666H85.333333v85.333334h85.333334v85.333333c0 47.061333 38.272 85.333333 85.333333 85.333333h85.333333v85.333334h85.333334v-85.333334h170.666666v85.333334h85.333334v-85.333334h85.333333c47.061333 0 85.333333-38.272 85.333333-85.333333v-85.333333h85.333334v-85.333334h-85.333334v-170.666666h85.333334V341.333333h-85.333334V256zM256 768V256h512l0.085333 512H256z" p-id="4662"></path></svg></div>
+                <div class="barcode"></div>
+                <div class="id-number" id="preview-id">ID: BIT-JOJO-001</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>姓名 (NAME)</label>
+            <input type="text" id="input-name" value="Steven" oninput="updateCard()">
+        </div>
+        <div class="control-group">
+            <label>职位 (POSITION)</label>
+            <input type="text" id="input-position" value="DATA CLEANER" oninput="updateCard()">
+        </div>
+        <div class="control-group">
+            <label>组织 (COMPANY)</label>
+            <input type="text" id="input-comp" value="THE NAVIGATOR PROJECT" oninput="updateCard()">
+        </div>
+        <div class="control-group">
+            <label>ID 编号</label>
+            <input type="text" id="input-id" value="ID: BIT-JOJO-001" oninput="updateCard()">
+        </div>
+        <div class="control-group">
+            <label>安全等级</label>
+            <input type="text" id="input-level" value="SECURITY CLEARANCE: LEVEL 5" oninput="updateCard()">
+        </div>
+        <div class="control-group">
+            <label>签名 (SIGNATURE)</label>
+            <input type="text" id="input-signature" value="Steven Evens" oninput="updateCard()">
+        </div>
+        <div class="control-group">
+            <label>二维码内容 (QR CONTENT)</label>
+            <input type="text" id="input-qr-content" value="Hello World" oninput="updateQRCode()">
+        </div>
+
+        <!-- 字号调整选项 -->
+        <div class="control-group">
+            <label>姓名字号: <span id="font-size-name-value">28</span>px</label>
+            <input type="range" id="font-size-name" min="10" max="40" value="28" oninput="updateFontSize()">
+        </div>
+        <div class="control-group">
+            <label>职位字号: <span id="font-size-position-value">18</span>px</label>
+            <input type="range" id="font-size-position" min="10" max="40" value="28" oninput="updateFontSize()">
+        </div>
+        <div class="control-group">
+            <label>部门字号: <span id="font-size-dept-value">22</span>px</label>
+            <input type="range" id="font-size-dept" min="16" max="28" value="22" oninput="updateFontSize()">
+        </div>
+        <div class="control-group">
+            <label>签名字号: <span id="font-size-signature-value">40</span>px</label>
+            <input type="range" id="font-size-signature" min="20" max="50" value="40" oninput="updateFontSize()">
+        </div>
+        <div class="control-group">
+            <label>签名加粗</label>
+            <label style="display: flex; align-items: center; gap: 10px;">
+                <input type="checkbox" id="signature-bold" onchange="updateSignatureBold()">
+                <span style="color: #aaa;">启用签名加粗</span>
+            </label>
+        </div>
+
+        <div class="control-group">
+            <label>头像选择</label>
+            <div class="preset-list">
+                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=fzfxg7" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Alex" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Zoe" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Max" class="preset-item" onclick="setAvatar(this.src)">
+                <div class="preset-item" style="display: flex; align-items: center; justify-content: center; background: #555; color: #fff; font-size: 20px; cursor: pointer;" onclick="setRandomAvatar()">🎲</div>
+            </div>
+            <label for="upload-avatar" class="upload-btn">📂 上传自定义头像</label>
+            <input type="file" id="upload-avatar" accept="image/*" onchange="handleImageUpload(this, 'preview-avatar')">
+        </div>
+        <div class="control-group">
+            <label>头像随机种子 (SEED)</label>
+            <input type="text" id="random-seed" placeholder="输入种子或点击骰子生成" value="" oninput="applySeed()">
+            <div style="display: flex; gap: 5px; margin-top: 5px;">
+                <button class="upload-btn" style="flex: 1; margin: 0;" onclick="setRandomAvatar()">🎲 随机生成</button>
+                <button class="upload-btn" style="flex: 1; margin: 0;" onclick="copySeed()">📋 复制种子</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Logo 选择</label>
+            <div class="preset-list">
+                <img src="https://img.icons8.com/ios-filled/100/000000/king-of-hearts.png" class="preset-item" style="background:#fff" onclick="setLogo(this.src)">
+                <img src="https://img.icons8.com/ios-filled/100/000000/moizhusnain-corporation.png" class="preset-item" style="background:#fff" onclick="setLogo(this.src)">
+                <img src="https://img.icons8.com/ios-filled/100/000000/united-nations.png" class="preset-item" style="background:#fff" onclick="setLogo(this.src)">
+                 <img src="https://img.icons8.com/ios-filled/100/000000/sandwich.png" class="preset-item" style="background:#fff" onclick="setLogo(this.src)">
+                  <img src="https://img.icons8.com/ios-filled/100/000000/corinthians.png" class="preset-item" style="background:#fff" onclick="setLogo(this.src)">
+            </div>
+            <label for="upload-logo" class="upload-btn">📂 上传自定义Logo</label>
+            <input type="file" id="upload-logo" accept="image/*" onchange="handleImageUpload(this, 'preview-logo')">
+        </div>
+
+        <button class="action-btn" onclick="downloadCard()">⬇️ 生成并下载工卡</button>
+    </div>
+
+    <script>
+        // 生成条形码函数
+        function generateBarcode(idText) {
+            // 简单的哈希函数，将ID文本转换为数字
+            let hash = 0;
+            for (let i = 0; i < idText.length; i++) {
+                const char = idText.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            
+            // 使用哈希创建随机的条形码图案
+            const segments = 10; // 条形码段数
+            let gradientSteps = [];
+            let position = 0;
+            
+            // 生成随机的黑白条纹组合
+            for (let i = 0; i < segments; i++) {
+                // 基于哈希的伪随机宽度
+                const blackWidth = Math.abs((hash * (i + 1)) % 3) + 1; // 1-3px
+                const whiteWidth = Math.abs((hash * (i + 2)) % 4) + 1; // 1-4px
+                
+                // 添加黑色条纹
+                gradientSteps.push(`#000 ${position}px, #000 ${position + blackWidth}px`);
+                position += blackWidth;
+                
+                // 添加白色条纹
+                gradientSteps.push(`transparent ${position}px, transparent ${position + whiteWidth}px`);
+                position += whiteWidth;
+            }
+            
+            // 确保覆盖整个条形码宽度
+            gradientSteps.push(`#000 ${position}px, #000 ${position + 2}px`);
+            
+            // 构建渐变字符串
+            const gradient = `repeating-linear-gradient(to right, ${gradientSteps.join(', ')})`;
+            
+            // 应用到CSS变量
+            document.querySelector('.barcode').style.setProperty('--barcode-gradient', gradient);
+        }
+        
+        // 1. 文本实时更新
+        function updateCard() {
+            document.getElementById('preview-name').innerText = document.getElementById('input-name').value;
+            document.getElementById('preview-position').innerText = document.getElementById('input-position').value;
+            document.getElementById('preview-dept').innerText = document.getElementById('input-comp').value;
+            const idValue = document.getElementById('input-id').value;
+            document.getElementById('preview-id').innerText = idValue;
+            document.getElementById('preview-level').innerText = document.getElementById('input-level').value;
+            document.getElementById('preview-signature').innerText = document.getElementById('input-signature').value;
+            
+            // 更新条形码
+            generateBarcode(idValue);
+        }
+
+        // 2. 预设图片切换
+        function setAvatar(src) {
+            document.getElementById('preview-avatar').src = src;
+        }
+        function setLogo(src) {
+            document.getElementById('preview-logo').src = src;
+        }
+
+        // 3. 随机头像生成
+        function setRandomAvatar() {
+            const randomSeed = Math.random().toString(36).substring(7);
+            const randomAvatarUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${randomSeed}`;
+            
+            // 应用到预览头像
+            document.getElementById('preview-avatar').src = randomAvatarUrl;
+            
+            // 更新种子输入框
+            document.getElementById('random-seed').value = randomSeed;
+        }
+
+        // 应用种子生成头像
+        function applySeed() {
+            const seed = document.getElementById('random-seed').value.trim();
+            
+            if (seed) {
+                const avatarUrl = `https://api.dicebear.com/7.x/pixel-art/svg?seed=${seed}`;
+                document.getElementById('preview-avatar').src = avatarUrl;
+            }
+        }
+
+        // 复制种子到剪贴板
+        function copySeed() {
+            const seedInput = document.getElementById('random-seed');
+            if (seedInput.value) {
+                navigator.clipboard.writeText(seedInput.value).then(() => {
+                    // 简单的成功提示
+                    const originalPlaceholder = seedInput.placeholder;
+                    seedInput.placeholder = '种子已复制到剪贴板！';
+                    setTimeout(() => {
+                        seedInput.placeholder = originalPlaceholder;
+                    }, 2000);
+                }).catch(() => {
+                    // 降级方案
+                    seedInput.select();
+                    document.execCommand('copy');
+                    const originalPlaceholder = seedInput.placeholder;
+                    seedInput.placeholder = '种子已复制！';
+                    setTimeout(() => {
+                        seedInput.placeholder = originalPlaceholder;
+                    }, 2000);
+                });
+            }
+        }
+
+        // 4. 二维码生成和更新
+        function updateQRCode() {
+            const qrContent = document.getElementById('input-qr-content').value;
+            const qrContainer = document.getElementById('preview-qr');
+            
+            // 清空现有内容
+            qrContainer.innerHTML = '';
+            
+            if (qrContent.trim() === '') {
+                // 如果内容为空，显示占位符
+                qrContainer.innerHTML = '<div class="qr-code-placeholder">QR</div>';
+            } else {
+                // 生成新的二维码
+                new QRCode(qrContainer, {
+                    text: qrContent,
+                    width: 48,
+                    height: 48,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.L
+                });
+            }
+        }
+
+        // 5. 图片上传处理
+        function handleImageUpload(input, targetId) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById(targetId).src = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // 6. 字号调整函数
+        function updateFontSize() {
+            const nameSize = document.getElementById('font-size-name').value;
+            const positionSize = document.getElementById('font-size-position').value;
+            const deptSize = document.getElementById('font-size-dept').value;
+            const signatureSize = document.getElementById('font-size-signature').value;
+            
+            // 更新显示值
+            document.getElementById('font-size-name-value').textContent = nameSize;
+            document.getElementById('font-size-position-value').textContent = positionSize;
+            document.getElementById('font-size-dept-value').textContent = deptSize;
+            document.getElementById('font-size-signature-value').textContent = signatureSize;
+            
+            // 获取对应的元素并更新字号
+            const nameElements = document.querySelectorAll('.info-value');
+            const positionElements = nameElements[0]; // 第一个info-value是职位
+            const nameElement = nameElements[1]; // 第二个info-value是姓名
+            
+            if (positionElements) positionElements.style.fontSize = positionSize + 'px';
+            if (nameElement) nameElement.style.fontSize = nameSize + 'px';
+            
+            // 更新部门字号
+            document.getElementById('preview-dept').style.fontSize = deptSize + 'px';
+            
+            // 更新签名字号
+            document.getElementById('preview-signature').style.fontSize = signatureSize + 'px';
+        }
+
+        // 7. 签名加粗切换函数
+        function updateSignatureBold() {
+            const isBold = document.getElementById('signature-bold').checked;
+            const signatureElement = document.getElementById('preview-signature');
+            
+            if (isBold) {
+                signatureElement.style.fontWeight = 'bold';
+            } else {
+                signatureElement.style.fontWeight = 'normal';
+            }
+        }
+
+        // 8. 生成并下载图片
+        function downloadCard() {
+            const element = document.getElementById("card-capture-area");
+            
+            // 为了保证下载清晰度，临时放大Canvas
+            html2canvas(element, {
+                scale: 1, // 2倍清晰度
+                backgroundColor: null, // 透明背景
+                useCORS: true // 允许跨域图片(如dicebear头像)
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'pixel-id-card.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+            }).catch(err => {
+                console.error("生成失败:", err);
+                alert("生成图片时出错，请确保图片资源加载正常。");
+            });
+        }
+        
+        // 页面加载时初始化条形码、二维码、字号和字体加粗
+        window.addEventListener('DOMContentLoaded', () => {
+            generateBarcode(document.getElementById('input-id').value);
+            updateQRCode();
+            updateFontSize(); // 初始化字号
+            updateSignatureBold(); // 初始化签名加粗状态
+        });
+    </script>
+</body>
+</html>
