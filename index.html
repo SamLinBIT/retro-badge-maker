@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>像素工卡生成器</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         @font-face {
@@ -516,7 +516,9 @@
             <input type="file" id="upload-logo" accept="image/*" onchange="handleImageUpload(this, 'preview-logo')">
         </div>
 
-        <button class="action-btn" onclick="downloadCard()">⬇️ 生成并下载工卡</button>
+        <div class="control-group" style="text-align: center; color: #aaa; font-size: 14px; padding: 10px; background: #222; border-radius: 5px; border: 1px solid #555;">
+            💡 请直接使用系统截图工具保存工卡图片
+        </div>
     </div>
 
     <script>
@@ -703,25 +705,7 @@
             }
         }
 
-        // 8. 生成并下载图片
-        function downloadCard() {
-            const element = document.getElementById("card-capture-area");
-            
-            // 为了保证下载清晰度，临时放大Canvas
-            html2canvas(element, {
-                scale: 1, // 2倍清晰度
-                backgroundColor: null, // 透明背景
-                useCORS: true // 允许跨域图片(如dicebear头像)
-            }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = 'pixel-id-card.png';
-                link.href = canvas.toDataURL("image/png");
-                link.click();
-            }).catch(err => {
-                console.error("生成失败:", err);
-                alert("生成图片时出错，请确保图片资源加载正常。");
-            });
-        }
+        // 注意：移除了下载功能，用户可直接使用系统截图工具保存工卡
         
         // 页面加载时初始化条形码、二维码、字号和字体加粗
         window.addEventListener('DOMContentLoaded', () => {
