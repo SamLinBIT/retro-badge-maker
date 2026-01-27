@@ -38,7 +38,7 @@
         /* --- 工卡主体样式 (预览区) --- */
         #card-capture-area {
             width: 324px;
-            height: 540px;
+            height: 490px;
             background-color: var(--card-bg);
             border: 4px solid var(--ink-color);
             border-radius: 0px;
@@ -107,7 +107,7 @@
         .main-section {
             display: flex;
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
             align-items: center;
         }
         
@@ -141,15 +141,23 @@
             flex-direction: column;
             justify-content: center;
         }
-        .info-label { font-size: 18px; margin-bottom: 2px; }
-        .info-value { font-size: 28px; font-weight: bold; line-height: 1; margin-bottom: 10px; text-transform: uppercase;}
+        .info-label { 
+            font-size: 18px; 
+            margin-bottom: 2px; 
+        }
+        .info-value { 
+            font-size: 28px; 
+            font-weight: bold; 
+            line-height: 1; 
+            margin-bottom: 10px; 
+        }
         
         /* 签名区域容器 */
         .signature-container {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             width: 100%;
         }
         /* 签名区域 */
@@ -246,7 +254,7 @@
         
         /* 动态条形码样式 */
         .barcode {
-            height: 50px;
+            height: 15px;
             width: 90%;
             margin: 0 auto;
             background: var(--barcode-gradient, repeating-linear-gradient(
@@ -381,11 +389,54 @@
             box-shadow: 2px 2px 0 #888;
         }
 
+        /* 模式切换按钮样式 */
+        .mode-switch {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+        .mode-btn {
+            padding: 8px 20px;
+            background: #333;
+            color: #fff;
+            border: 2px solid #555;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        .mode-btn:hover {
+            background: #444;
+            border-color: #fff;
+        }
+        .mode-btn.active {
+            background: #fff;
+            color: #000;
+            border-color: #000;
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+        }
+
+        /* 过渡动画效果 */
+        #card-capture-area,
+        .main-section,
+        .signature-container,
+        .barcode {
+            transition: all 0.3s ease-in-out;
+        }
+
     </style>
 </head>
 <body>
 
     <h2>像素工卡生成器</h2>
+
+    <!-- 模式切换按钮 -->
+    <div class="mode-switch">
+        <button class="mode-btn" onclick="switchMode('X3')">X3</button>
+        <button class="mode-btn active" onclick="switchMode('X4')">X4</button>
+    </div>
 
     <div id="card-capture-area">
         <div class="card-content">
@@ -393,7 +444,7 @@
                 <img src="https://img.icons8.com/ios-filled/100/000000/united-nations.png" class="header-logo" id="preview-logo">
                 <div class="header-text">
                     <h3 id="preview-dept">THE NAVIGATOR PROJECT</h3>
-                    <span id="preview-sub-dept">COMPANY</span>
+                    <span id="preview-sub-dept">ORGANIZATION</span>
                 </div>
             </div>
 
@@ -437,7 +488,7 @@
             <input type="text" id="input-position" value="DATA CLEANER" oninput="updateCard()">
         </div>
         <div class="control-group">
-            <label>组织 (COMPANY)</label>
+            <label>组织 (ORGANIZATION)</label>
             <input type="text" id="input-comp" value="THE NAVIGATOR PROJECT" oninput="updateCard()">
         </div>
         <div class="control-group">
@@ -705,8 +756,39 @@
             }
         }
 
-        // 注意：移除了下载功能，用户可直接使用系统截图工具保存工卡
-        
+        // 8. 模式切换功能
+        function switchMode(mode) {
+            // 更新按钮状态
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // 确保event对象存在
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('active');
+            }
+            
+            // 获取需要修改的元素
+            const cardArea = document.getElementById('card-capture-area');
+            const mainSection = document.querySelector('.main-section');
+            const signatureContainer = document.querySelector('.signature-container');
+            const barcode = document.querySelector('.barcode');
+            
+            // 根据模式设置样式
+            if (mode === 'X3') {
+                // X3模式
+                cardArea.style.height = '490px';
+                mainSection.style.marginBottom = '8px';
+                signatureContainer.style.marginBottom = '6px';
+                barcode.style.height = '15px';
+            } else if (mode === 'X4') {
+                // X4模式
+                cardArea.style.height = '540px';
+                mainSection.style.marginBottom = '15px';
+                signatureContainer.style.marginBottom = '10px';
+                barcode.style.height = '50px';
+            }
+        }
+
         // 页面加载时初始化条形码、二维码、字号和字体加粗
         window.addEventListener('DOMContentLoaded', () => {
             generateBarcode(document.getElementById('input-id').value);
