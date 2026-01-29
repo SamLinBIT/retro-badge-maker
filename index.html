@@ -450,7 +450,7 @@
 
             <div class="main-section">
                 <div class="photo-frame" onclick="setRandomAvatar()" style="cursor: pointer;" title="点击随机生成头像">
-                    <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=fzfxg7" class="photo-img" id="preview-avatar">
+                    <img src="Avatar-1.jpg" class="photo-img" id="preview-avatar">
                 </div>
                 <div class="info-block">
                     <div class="info-label">POSITION</div>
@@ -536,17 +536,17 @@
         <div class="control-group">
             <label>头像选择</label>
             <div class="preset-list">
-                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=fzfxg7" class="preset-item" onclick="setAvatar(this.src)">
-                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Alex" class="preset-item" onclick="setAvatar(this.src)">
-                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Zoe" class="preset-item" onclick="setAvatar(this.src)">
-                <img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Max" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="Avatar-1.jpg" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="Avatar-2.jpg" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="Avatar-3.jpg" class="preset-item" onclick="setAvatar(this.src)">
+                <img src="Avatar-4.jpg" class="preset-item" onclick="setAvatar(this.src)">
                 <div class="preset-item" style="display: flex; align-items: center; justify-content: center; background: #555; color: #fff; font-size: 20px; cursor: pointer;" onclick="setRandomAvatar()">🎲</div>
             </div>
             <label for="upload-avatar" class="upload-btn">📂 上传自定义头像</label>
             <input type="file" id="upload-avatar" accept="image/*" onchange="handleImageUpload(this, 'preview-avatar')">
         </div>
         <div class="control-group">
-            <label>头像随机种子 (点击头像图片也可随机)</label>
+            <label>丑头像随机种子 (点击头像图片也可随机)</label>
             <input type="text" id="random-seed" placeholder="输入种子或点击骰子生成" value="" oninput="applySeed()">
             <div style="display: flex; gap: 5px; margin-top: 5px;">
                 <button class="upload-btn" style="flex: 1; margin: 0;" onclick="setRandomAvatar()">🎲 随机生成</button>
